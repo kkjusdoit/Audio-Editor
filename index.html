@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频编辑器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎵 音频编辑器</h1>
+            <p class="subtitle">导入音频 · 选择片段 · 导出剪辑</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <button id="importBtn" class="btn btn-primary">
+                    📁 导入音频
+                </button>
+                <input type="file" id="audioFile" accept="audio/*" style="display: none;">
+            </div>
+
+            <div class="control-group" id="playbackControls" style="display: none;">
+                <button id="playBtn" class="btn btn-success">
+                    ▶️ 播放
+                </button>
+                <button id="pauseBtn" class="btn btn-warning" style="display: none;">
+                    ⏸️ 暂停
+                </button>
+                <button id="stopBtn" class="btn btn-danger">
+                    ⏹️ 停止
+                </button>
+            </div>
+
+            <div class="control-group" id="exportControls" style="display: none;">
+                <button id="exportBtn" class="btn btn-export">
+                    💾 导出选中片段
+                </button>
+                <button id="exportAllBtn" class="btn btn-secondary">
+                    💿 导出完整音频
+                </button>
+            </div>
+        </div>
+
+        <div id="audioInfo" class="audio-info" style="display: none;">
+            <div class="info-item">
+                <span class="label">文件名:</span>
+                <span id="fileName" class="value">-</span>
+            </div>
+            <div class="info-item">
+                <span class="label">时长:</span>
+                <span id="duration" class="value">-</span>
+            </div>
+            <div class="info-item">
+                <span class="label">当前时间:</span>
+                <span id="currentTime" class="value">00:00</span>
+            </div>
+        </div>
+
+        <div id="selectionInfo" class="selection-info" style="display: none;">
+            <div class="info-item">
+                <span class="label">选中开始:</span>
+                <span id="selectionStart" class="value">-</span>
+            </div>
+            <div class="info-item">
+                <span class="label">选中结束:</span>
+                <span id="selectionEnd" class="value">-</span>
+            </div>
+            <div class="info-item">
+                <span class="label">选中时长:</span>
+                <span id="selectionDuration" class="value">-</span>
+            </div>
+        </div>
+
+        <div class="waveform-container">
+            <canvas id="waveformCanvas"></canvas>
+            <div id="placeholder" class="placeholder">
+                <div class="placeholder-icon">🎵</div>
+                <p>点击"导入音频"开始使用</p>
+                <p class="placeholder-hint">支持 MP3、WAV、OGG 等格式</p>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📖 使用说明</h3>
+            <ul>
+                <li>点击<strong>导入音频</strong>按钮选择音频文件</li>
+                <li>在波形图上<strong>按住鼠标拖动</strong>可以选中音频片段（蓝色区域，红色边界线）</li>
+                <li><strong>微调选区</strong>：鼠标移到红色边界线上，<strong>整条线都可拖拽</strong>调整开始/结束位置</li>
+                <li>点击<strong>播放</strong>按钮：如果有选中片段，会只播放选中部分；没有选中则播放全部</li>
+                <li>选中片段后点击<strong>导出选中片段</strong>保存剪辑</li>
+                <li>点击选区外的空白处可创建新选区</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
