@@ -45,6 +45,15 @@ class AudioEditor {
             this.loadAudioFile(e.target.files[0]);
         });
         
+        // MP4转WAV按钮
+        document.getElementById('mp4ToWavBtn').addEventListener('click', () => {
+            document.getElementById('mp4File').click();
+        });
+        
+        document.getElementById('mp4File').addEventListener('change', (e) => {
+            this.convertMp4ToWav(e.target.files[0]);
+        });
+        
         // 播放控制
         document.getElementById('playBtn').addEventListener('click', () => this.play());
         document.getElementById('pauseBtn').addEventListener('click', () => this.pause());
@@ -623,6 +632,100 @@ class AudioEditor {
         }
         
         return arrayBuffer;
+    }
+    
+    async convertMp4ToWav(file) {
+        if (!file) return;
+        
+        // 显示处理提示
+        const originalText = document.getElementById('mp4ToWavBtn').textContent;
+        document.getElementById('mp4ToWavBtn').textContent = '🎬 处理中...';
+        document.getElementById('mp4ToWavBtn').disabled = true;
+        
+        try {
+            // 创建一个隐藏的 video 元素
+            const video = document.createElement('video');
+            video.style.display = 'none';
+            document.body.appendChild(video);
+            
+            // 加载视频文件
+            const videoUrl = URL.createObjectURL(file);
+            video.src = videoUrl;
+            
+            // 等待视频元数据加载
+            await new Promise((resolve, reject) => {
+                video.onloadedmetadata = resolve;
+                video.onerror = reject;
+            });
+            
+            // 创建 AudioContext
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            // 创建离线音频上下文进行处理
+            const duration = video.duration;
+            const sampleRate = this.audioContext.sampleRate;
+            const offlineContext = new OfflineAudioContext(2, duration * sampleRate, sampleRate);
+            
+            // 创建 MediaElementSource
+            const source = this.audioContext.createMediaElementSource(video);
+            const destination = this.audioContext.createMediaStreamDestination();
+            source.connect(destination);
+            
+            // 使用 MediaRecorder 录制
+            const mediaRecorder = new MediaRecorder(destination.stream);
+            const chunks = [];
+            
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunks.push(e.data);
+                }
+            };
+            
+            // 开始录制
+            mediaRecorder.start();
+            video.play();
+            
+            // 等待视频播放完成
+            await new Promise((resolve) => {
+                video.onended = () => {
+                    mediaRecorder.stop();
+                    setTimeout(resolve, 100);
+                };
+            });
+            
+            // 等待录制数据
+            await new Promise((resolve) => {
+                mediaRecorder.onstop = resolve;
+            });
+            
+            // 合并音频数据
+            const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            
+            // 转换为 WAV 并下载
+            const fileName = file.name.replace(/\.[^/.]+$/, '') + '.wav';
+            await this.downloadAudio(audioBuffer, fileName);
+            
+            // 清理
+            URL.revokeObjectURL(videoUrl);
+            document.body.removeChild(video);
+            
+            alert('✅ MP4 转换成功！WAV 文件已下载。');
+            
+        } catch (error) {
+            console.error('MP4转WAV失败:', error);
+            alert('❌ MP4 转换失败！\n\n可能的原因：\n1. 视频格式不支持\n2. 视频没有音频轨道\n3. 浏览器兼容性问题\n\n请尝试其他视频文件。');
+        } finally {
+            // 恢复按钮状态
+            document.getElementById('mp4ToWavBtn').textContent = originalText;
+            document.getElementById('mp4ToWavBtn').disabled = false;
+            
+            // 重置文件输入
+            document.getElementById('mp4File').value = '';
+        }
     }
     
     formatTime(seconds) {
