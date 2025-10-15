@@ -639,13 +639,15 @@ class AudioEditor {
         
         // 显示处理提示
         const originalText = document.getElementById('mp4ToWavBtn').textContent;
-        document.getElementById('mp4ToWavBtn').textContent = '🎬 处理中...';
-        document.getElementById('mp4ToWavBtn').disabled = true;
+        const btn = document.getElementById('mp4ToWavBtn');
+        btn.textContent = '🎬 解析中...';
+        btn.disabled = true;
         
         try {
             // 创建一个隐藏的 video 元素
             const video = document.createElement('video');
             video.style.display = 'none';
+            video.preload = 'metadata';
             document.body.appendChild(video);
             
             // 加载视频文件
@@ -655,73 +657,107 @@ class AudioEditor {
             // 等待视频元数据加载
             await new Promise((resolve, reject) => {
                 video.onloadedmetadata = resolve;
-                video.onerror = reject;
+                video.onerror = () => reject(new Error('视频加载失败'));
+                setTimeout(() => reject(new Error('加载超时')), 30000); // 30秒超时
             });
+            
+            // 检查视频时长
+            const duration = video.duration;
+            if (!duration || duration === Infinity) {
+                throw new Error('无法获取视频时长');
+            }
+            
+            btn.textContent = `🎬 转换中... (${Math.round(duration)}秒)`;
             
             // 创建 AudioContext
             if (!this.audioContext) {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
             
-            // 创建离线音频上下文进行处理
-            const duration = video.duration;
-            const sampleRate = this.audioContext.sampleRate;
-            const offlineContext = new OfflineAudioContext(2, duration * sampleRate, sampleRate);
+            // 使用 fetch 获取视频文件的完整数据
+            const response = await fetch(videoUrl);
+            const arrayBuffer = await response.arrayBuffer();
             
-            // 创建 MediaElementSource
-            const source = this.audioContext.createMediaElementSource(video);
-            const destination = this.audioContext.createMediaStreamDestination();
-            source.connect(destination);
+            // 创建临时 Blob 用于音频解码
+            const blob = new Blob([arrayBuffer], { type: file.type });
+            const audioBlobUrl = URL.createObjectURL(blob);
             
-            // 使用 MediaRecorder 录制
-            const mediaRecorder = new MediaRecorder(destination.stream);
+            // 创建新的 audio 元素来提取音频
+            const audio = new Audio();
+            audio.src = audioBlobUrl;
+            
+            // 等待音频准备就绪
+            await new Promise((resolve, reject) => {
+                audio.onloadedmetadata = resolve;
+                audio.onerror = () => reject(new Error('音频提取失败'));
+            });
+            
+            // 使用 Web Audio API 处理
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaElementSource(audio);
+            const dest = audioCtx.createMediaStreamDestination();
+            source.connect(dest);
+            
+            // 使用 MediaRecorder 录制（静默播放）
+            const mediaRecorder = new MediaRecorder(dest.stream, {
+                mimeType: 'audio/webm'
+            });
+            
             const chunks = [];
-            
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0) {
                     chunks.push(e.data);
                 }
             };
             
-            // 开始录制
+            // 开始录制并静音播放
             mediaRecorder.start();
-            video.play();
+            audio.volume = 0; // 静音
+            audio.playbackRate = 16.0; // 16倍速（加快处理）
+            audio.play();
             
-            // 等待视频播放完成
+            // 等待播放完成
             await new Promise((resolve) => {
-                video.onended = () => {
+                audio.onended = () => {
                     mediaRecorder.stop();
-                    setTimeout(resolve, 100);
+                    setTimeout(resolve, 500);
                 };
             });
             
-            // 等待录制数据
+            // 等待录制完成
             await new Promise((resolve) => {
                 mediaRecorder.onstop = resolve;
             });
             
-            // 合并音频数据
+            btn.textContent = '🎬 生成WAV...';
+            
+            // 合并并解码音频数据
             const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-            const arrayBuffer = await audioBlob.arrayBuffer();
-            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            const audioArrayBuffer = await audioBlob.arrayBuffer();
+            const audioBuffer = await this.audioContext.decodeAudioData(audioArrayBuffer);
             
             // 转换为 WAV 并下载
             const fileName = file.name.replace(/\.[^/.]+$/, '') + '.wav';
             await this.downloadAudio(audioBuffer, fileName);
             
-            // 清理
+            // 清理资源
             URL.revokeObjectURL(videoUrl);
+            URL.revokeObjectURL(audioBlobUrl);
             document.body.removeChild(video);
+            audioCtx.close();
             
-            alert('✅ MP4 转换成功！WAV 文件已下载。');
+            btn.textContent = '✅ 转换成功！';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
             
         } catch (error) {
             console.error('MP4转WAV失败:', error);
-            alert('❌ MP4 转换失败！\n\n可能的原因：\n1. 视频格式不支持\n2. 视频没有音频轨道\n3. 浏览器兼容性问题\n\n请尝试其他视频文件。');
+            alert(`❌ MP4 转换失败！\n\n错误信息：${error.message}\n\n可能的原因：\n1. 视频格式不支持\n2. 视频没有音频轨道\n3. 文件太大或损坏\n4. 浏览器兼容性问题\n\n建议：\n- 尝试更小的视频文件\n- 使用 MP4 格式\n- 确保视频包含音频`);
+            btn.textContent = originalText;
         } finally {
             // 恢复按钮状态
-            document.getElementById('mp4ToWavBtn').textContent = originalText;
-            document.getElementById('mp4ToWavBtn').disabled = false;
+            btn.disabled = false;
             
             // 重置文件输入
             document.getElementById('mp4File').value = '';
