@@ -13,17 +13,23 @@
             <p class="subtitle">导入音频 · 选择片段 · 导出剪辑</p>
         </header>
 
+        <div class="converter-tip">
+            <div class="converter-tip-header">🎬 需要转换视频为音频？</div>
+            <div class="converter-links">
+                <a href="https://cloudconvert.com/mp4-to-wav" target="_blank">CloudConvert</a>
+                <a href="https://www.freeconvert.com/mp4-to-wav" target="_blank">FreeConvert</a>
+                <a href="https://online-audio-converter.com/" target="_blank">Online Audio Converter</a>
+                <a href="https://www.happyscribe.com/tools/convert-mp4-to-wav" target="_blank">HappyScribe</a>
+                <a href="https://zight.com/tools/mp4-to-wav-converter/" target="_blank">Zight</a>
+            </div>
+        </div>
+
         <div class="controls">
             <div class="control-group">
                 <button id="importBtn" class="btn btn-primary">
                     📁 导入音频
                 </button>
                 <input type="file" id="audioFile" accept="audio/*" style="display: none;">
-                
-                <button id="mp4ToWavBtn" class="btn btn-convert">
-                    🎬 MP4转WAV
-                </button>
-                <input type="file" id="mp4File" accept="video/mp4,video/*" style="display: none;">
             </div>
 
             <div class="control-group" id="playbackControls" style="display: none;">
@@ -91,7 +97,6 @@
             <h3>📖 使用说明</h3>
             <ul>
                 <li>点击<strong>导入音频</strong>按钮选择音频文件</li>
-                <li>点击<strong>🎬 MP4转WAV</strong>按钮可以从视频文件中提取音频并转换为WAV格式</li>
                 <li>在波形图上<strong>按住鼠标拖动</strong>可以选中音频片段（蓝色区域，红色边界线）</li>
                 <li><strong>微调选区</strong>：鼠标移到红色边界线上，<strong>整条线都可拖拽</strong>调整开始/结束位置</li>
                 <li>点击<strong>播放</strong>按钮：如果有选中片段，会只播放选中部分；没有选中则播放全部</li>
