@@ -24,6 +24,7 @@ class AudioEditor {
         // 文件信息
         this.fileName = '';
         this.currentFileName = '';
+        this.exportCounter = 0;  // 导出计数器
         
         this.init();
     }
@@ -78,6 +79,7 @@ class AudioEditor {
         
         this.fileName = file.name;
         this.currentFileName = file.name;
+        this.exportCounter = 0;  // 重置导出计数器
         document.getElementById('fileName').textContent = this.fileName;
         
         try {
@@ -501,8 +503,12 @@ class AudioEditor {
                 }
             }
             
+            // 生成智能文件名
+            this.exportCounter++;
+            const fileName = this.generateExportFileName();
+            
             // 导出为 WAV
-            await this.downloadAudio(exportBuffer, 'audio_clip.wav');
+            await this.downloadAudio(exportBuffer, fileName);
             
         } catch (error) {
             console.error('导出失败:', error);
@@ -517,11 +523,27 @@ class AudioEditor {
         }
         
         try {
-            await this.downloadAudio(this.audioBuffer, this.currentFileName || 'audio_export.wav');
+            // 生成智能文件名
+            this.exportCounter++;
+            const fileName = this.generateExportFileName();
+            
+            await this.downloadAudio(this.audioBuffer, fileName);
         } catch (error) {
             console.error('导出失败:', error);
             alert('导出失败！');
         }
+    }
+    
+    generateExportFileName() {
+        // 获取原始文件名（去除扩展名）
+        let baseName = 'audio';
+        if (this.currentFileName) {
+            // 去除文件扩展名
+            baseName = this.currentFileName.replace(/\.[^/.]+$/, '');
+        }
+        
+        // 生成格式：原文件名_序号.wav
+        return `${baseName}_${this.exportCounter}.wav`;
     }
     
     async downloadAudio(audioBuffer, fileName) {
@@ -533,7 +555,7 @@ class AudioEditor {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = fileName.replace(/\.[^/.]+$/, '') + '.wav';
+        a.download = fileName;
         a.click();
         
         URL.revokeObjectURL(url);
