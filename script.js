@@ -25,6 +25,7 @@ class AudioEditor {
         this.fileName = '';
         this.currentFileName = '';
         this.exportCounter = 0;  // 导出计数器
+        this.exportedSegments = [];  // 已导出的片段记录
         
         this.init();
     }
@@ -52,7 +53,7 @@ class AudioEditor {
         
         // 导出按钮
         document.getElementById('exportBtn').addEventListener('click', () => this.exportSelection());
-        document.getElementById('exportAllBtn').addEventListener('click', () => this.exportAll());
+        document.getElementById('finishExportBtn').addEventListener('click', () => this.finishExport());
         
         // Canvas 交互
         this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
@@ -80,6 +81,7 @@ class AudioEditor {
         this.fileName = file.name;
         this.currentFileName = file.name;
         this.exportCounter = 0;  // 重置导出计数器
+        this.exportedSegments = [];  // 重置已导出片段记录
         document.getElementById('fileName').textContent = this.fileName;
         
         try {
@@ -127,7 +129,37 @@ class AudioEditor {
         this.ctx.fillStyle = '#f8f9fa';
         this.ctx.fillRect(0, 0, width, height);
         
-        // 绘制选区背景
+        // 绘制已导出片段的痕迹（灰色背景，不可交互）
+        this.ctx.fillStyle = 'rgba(150, 150, 150, 0.15)';
+        for (const segment of this.exportedSegments) {
+            const startX = (segment.start / this.audioBuffer.duration) * width;
+            const endX = (segment.end / this.audioBuffer.duration) * width;
+            this.ctx.fillRect(startX, 0, endX - startX, height);
+        }
+        
+        // 绘制已导出片段的边界线（灰色虚线）
+        this.ctx.setLineDash([5, 5]);
+        this.ctx.strokeStyle = '#888';
+        this.ctx.lineWidth = 2;
+        for (const segment of this.exportedSegments) {
+            const startX = (segment.start / this.audioBuffer.duration) * width;
+            const endX = (segment.end / this.audioBuffer.duration) * width;
+            
+            // 开始位置边界线
+            this.ctx.beginPath();
+            this.ctx.moveTo(startX, 0);
+            this.ctx.lineTo(startX, height);
+            this.ctx.stroke();
+            
+            // 结束位置边界线
+            this.ctx.beginPath();
+            this.ctx.moveTo(endX, 0);
+            this.ctx.lineTo(endX, height);
+            this.ctx.stroke();
+        }
+        this.ctx.setLineDash([]); // 重置线条样式
+        
+        // 绘制当前选区背景
         if (this.selectionStart !== null && this.selectionEnd !== null) {
             const startX = (this.selectionStart / this.audioBuffer.duration) * width;
             const endX = (this.selectionEnd / this.audioBuffer.duration) * width;
@@ -510,24 +542,22 @@ class AudioEditor {
             // 导出为 WAV
             await this.downloadAudio(exportBuffer, fileName);
             
-        } catch (error) {
-            console.error('导出失败:', error);
-            alert('导出失败！');
-        }
-    }
-    
-    async exportAll() {
-        if (!this.audioBuffer) {
-            alert('请先导入音频文件！');
-            return;
-        }
-        
-        try {
-            // 生成智能文件名
-            this.exportCounter++;
-            const fileName = this.generateExportFileName();
+            // 记录已导出的片段信息
+            this.exportedSegments.push({
+                start: this.selectionStart,
+                end: this.selectionEnd,
+                duration: this.selectionEnd - this.selectionStart,
+                fileName: fileName
+            });
             
-            await this.downloadAudio(this.audioBuffer, fileName);
+            // 重新绘制波形图，显示已导出片段的痕迹
+            this.drawWaveform();
+            
+            // 清除当前选区
+            this.selectionStart = null;
+            this.selectionEnd = null;
+            this.updateSelectionInfo();
+            
         } catch (error) {
             console.error('导出失败:', error);
             alert('导出失败！');
@@ -630,6 +660,50 @@ class AudioEditor {
         const secs = Math.floor(seconds % 60);
         const ms = Math.floor((seconds % 1) * 100);
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+    }
+    
+    finishExport() {
+        if (this.exportedSegments.length === 0) {
+            alert('还没有导出任何片段！');
+            return;
+        }
+        
+        // 生成txt内容
+        let txtContent = '音频导出记录\n';
+        txtContent += '='.repeat(60) + '\n';
+        txtContent += `原始文件: ${this.currentFileName}\n`;
+        txtContent += `导出时间: ${new Date().toLocaleString('zh-CN')}\n`;
+        txtContent += `导出片段数: ${this.exportedSegments.length}\n`;
+        txtContent += '='.repeat(60) + '\n\n';
+        
+        // 遍历所有导出的片段
+        this.exportedSegments.forEach((segment, index) => {
+            const startMs = Math.floor(segment.start * 1000);
+            const endMs = Math.floor(segment.end * 1000);
+            const durationMs = Math.floor(segment.duration * 1000);
+            
+            txtContent += `片段 ${index + 1}: ${segment.fileName}\n`;
+            txtContent += '-'.repeat(60) + '\n';
+            txtContent += `  开始时间: ${startMs} 毫秒 (${this.formatTime(segment.start)})\n`;
+            txtContent += `  结束时间: ${endMs} 毫秒 (${this.formatTime(segment.end)})\n`;
+            txtContent += `  片段时长: ${durationMs} 毫秒 (${this.formatTime(segment.duration)})\n`;
+            txtContent += '\n';
+        });
+        
+        // 创建Blob并下载
+        const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        // 生成txt文件名
+        const baseName = this.currentFileName.replace(/\.[^/.]+$/, '');
+        a.href = url;
+        a.download = `${baseName}_导出记录.txt`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        
+        alert('导出记录已保存！');
     }
 }
 

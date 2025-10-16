@@ -141,6 +141,11 @@ body {
     color: #333;
 }
 
+.btn-finish {
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+    color: white;
+}
+
 .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
