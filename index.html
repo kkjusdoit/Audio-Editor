@@ -84,6 +84,24 @@
             </div>
         </div>
 
+        <div id="timestampInput" class="timestamp-input" style="display: none;">
+            <div class="timestamp-header">⏱️ 时间戳输入</div>
+            <div class="timestamp-controls">
+                <div class="timestamp-item">
+                    <label>开始时间:</label>
+                    <input type="text" id="startTimestamp" placeholder="00:02.32" />
+                </div>
+                <div class="timestamp-item">
+                    <label>结束时间:</label>
+                    <input type="text" id="endTimestamp" placeholder="00:05.85" />
+                </div>
+                <button id="applyTimestampBtn" class="btn btn-apply">
+                    ✓ 应用
+                </button>
+            </div>
+            <div class="timestamp-hint">格式: MM:SS.MS 或 HH:MM:SS.MS</div>
+        </div>
+
         <div class="waveform-container">
             <canvas id="waveformCanvas"></canvas>
             <div id="placeholder" class="placeholder">
@@ -97,7 +115,8 @@
             <h3>📖 使用说明</h3>
             <ul>
                 <li>点击<strong>导入音频</strong>按钮选择音频文件</li>
-                <li>在波形图上<strong>按住鼠标拖动</strong>可以选中音频片段（蓝色区域，红色边界线）</li>
+                <li><strong>方式一：拖拽选择</strong> - 在波形图上<strong>按住鼠标拖动</strong>可以选中音频片段（蓝色区域，红色边界线）</li>
+                <li><strong>方式二：时间戳输入</strong> - 在时间戳输入框中输入开始和结束时间（格式：00:02.32），点击<strong>应用</strong>按钮精确选择范围</li>
                 <li><strong>微调选区</strong>：鼠标移到红色边界线上，<strong>整条线都可拖拽</strong>调整开始/结束位置</li>
                 <li>点击<strong>播放</strong>按钮：如果有选中片段，会只播放选中部分；没有选中则播放全部</li>
                 <li>选中片段后点击<strong>导出选中片段</strong>保存剪辑</li>

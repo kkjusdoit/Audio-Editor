@@ -55,6 +55,9 @@ class AudioEditor {
         document.getElementById('exportBtn').addEventListener('click', () => this.exportSelection());
         document.getElementById('finishExportBtn').addEventListener('click', () => this.finishExport());
         
+        // 时间戳输入
+        document.getElementById('applyTimestampBtn').addEventListener('click', () => this.applyTimestamp());
+        
         // Canvas 交互
         this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
@@ -103,6 +106,7 @@ class AudioEditor {
             document.getElementById('audioInfo').style.display = 'flex';
             document.getElementById('playbackControls').style.display = 'flex';
             document.getElementById('exportControls').style.display = 'flex';
+            document.getElementById('timestampInput').style.display = 'flex';
             document.getElementById('placeholder').style.display = 'none';
             
             // 绘制波形
@@ -402,13 +406,23 @@ class AudioEditor {
     
     updateSelectionInfo() {
         if (this.selectionStart !== null && this.selectionEnd !== null) {
-            document.getElementById('selectionStart').textContent = this.formatTime(this.selectionStart);
-            document.getElementById('selectionEnd').textContent = this.formatTime(this.selectionEnd);
+            const startTimeStr = this.formatTime(this.selectionStart);
+            const endTimeStr = this.formatTime(this.selectionEnd);
+            
+            document.getElementById('selectionStart').textContent = startTimeStr;
+            document.getElementById('selectionEnd').textContent = endTimeStr;
             document.getElementById('selectionDuration').textContent = 
                 this.formatTime(Math.abs(this.selectionEnd - this.selectionStart));
             document.getElementById('selectionInfo').style.display = 'flex';
+            
+            // 同时更新时间戳输入框的值（实际值，不是占位符）
+            document.getElementById('startTimestamp').value = startTimeStr;
+            document.getElementById('endTimestamp').value = endTimeStr;
         } else {
             document.getElementById('selectionInfo').style.display = 'none';
+            // 清空时间戳输入框
+            document.getElementById('startTimestamp').value = '';
+            document.getElementById('endTimestamp').value = '';
         }
     }
     
@@ -660,6 +674,102 @@ class AudioEditor {
         const secs = Math.floor(seconds % 60);
         const ms = Math.floor((seconds % 1) * 100);
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+    }
+    
+    parseTimestamp(timestamp) {
+        // 支持多种格式: MM:SS.MS 或 HH:MM:SS.MS 或 SS.MS
+        if (!timestamp || typeof timestamp !== 'string') {
+            return null;
+        }
+        
+        timestamp = timestamp.trim();
+        
+        // 尝试匹配格式: HH:MM:SS.MS 或 MM:SS.MS 或 SS.MS
+        const patterns = [
+            /^(\d{1,2}):(\d{1,2}):(\d{1,2})\.(\d{1,2})$/,  // HH:MM:SS.MS
+            /^(\d{1,2}):(\d{1,2})\.(\d{1,2})$/,            // MM:SS.MS
+            /^(\d{1,2})\.(\d{1,2})$/                       // SS.MS
+        ];
+        
+        for (let i = 0; i < patterns.length; i++) {
+            const match = timestamp.match(patterns[i]);
+            if (match) {
+                let hours = 0, minutes = 0, seconds = 0, ms = 0;
+                
+                if (i === 0) {
+                    // HH:MM:SS.MS
+                    hours = parseInt(match[1]);
+                    minutes = parseInt(match[2]);
+                    seconds = parseInt(match[3]);
+                    ms = parseInt(match[4]);
+                } else if (i === 1) {
+                    // MM:SS.MS
+                    minutes = parseInt(match[1]);
+                    seconds = parseInt(match[2]);
+                    ms = parseInt(match[3]);
+                } else {
+                    // SS.MS
+                    seconds = parseInt(match[1]);
+                    ms = parseInt(match[2]);
+                }
+                
+                // 转换为总秒数
+                const totalSeconds = hours * 3600 + minutes * 60 + seconds + ms / 100;
+                return totalSeconds;
+            }
+        }
+        
+        return null;
+    }
+    
+    applyTimestamp() {
+        if (!this.audioBuffer) {
+            alert('请先导入音频文件！');
+            return;
+        }
+        
+        const startInput = document.getElementById('startTimestamp').value;
+        const endInput = document.getElementById('endTimestamp').value;
+        
+        if (!startInput || !endInput) {
+            alert('请输入开始和结束时间！');
+            return;
+        }
+        
+        const startTime = this.parseTimestamp(startInput);
+        const endTime = this.parseTimestamp(endInput);
+        
+        if (startTime === null) {
+            alert('开始时间格式错误！请使用格式: MM:SS.MS (例如: 00:02.32)');
+            return;
+        }
+        
+        if (endTime === null) {
+            alert('结束时间格式错误！请使用格式: MM:SS.MS (例如: 00:05.85)');
+            return;
+        }
+        
+        if (startTime >= endTime) {
+            alert('开始时间必须小于结束时间！');
+            return;
+        }
+        
+        if (startTime < 0 || endTime > this.audioBuffer.duration) {
+            alert(`时间范围必须在 0 到 ${this.formatTime(this.audioBuffer.duration)} 之间！`);
+            return;
+        }
+        
+        // 应用时间戳到选区
+        this.selectionStart = startTime;
+        this.selectionEnd = endTime;
+        
+        // 更新显示
+        this.drawWaveform();
+        this.updateSelectionInfo();
+        
+        // 清空输入框（可选）
+        // document.getElementById('startTimestamp').value = '';
+        // document.getElementById('endTimestamp').value = '';
     }
     
     finishExport() {

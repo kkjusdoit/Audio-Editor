@@ -146,13 +146,20 @@ body {
     color: white;
 }
 
+.btn-apply {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
 .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none !important;
 }
 
-.audio-info, .selection-info {
+.audio-info, .selection-info, .timestamp-input {
     display: flex;
     gap: 30px;
     justify-content: center;
@@ -265,6 +272,70 @@ body {
 
 .instructions strong {
     color: #d35400;
+}
+
+/* 时间戳输入样式 */
+.timestamp-input {
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+}
+
+.timestamp-header {
+    font-weight: 700;
+    color: #00695c;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+}
+
+.timestamp-controls {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.timestamp-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.timestamp-item label {
+    font-weight: 600;
+    color: #00695c;
+    font-size: 14px;
+}
+
+.timestamp-item input {
+    padding: 10px 15px;
+    border: 2px solid #4dd0e1;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #00695c;
+    background: white;
+    width: 150px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.timestamp-item input:focus {
+    outline: none;
+    border-color: #00acc1;
+    box-shadow: 0 0 0 3px rgba(0, 172, 193, 0.1);
+}
+
+.timestamp-item input::placeholder {
+    color: #b2dfdb;
+}
+
+.timestamp-hint {
+    font-size: 13px;
+    color: #00796b;
+    margin-top: 10px;
+    font-style: italic;
 }
 
 /* 响应式设计 */
