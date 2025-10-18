@@ -586,8 +586,8 @@ class AudioEditor {
             baseName = this.currentFileName.replace(/\.[^/.]+$/, '');
         }
         
-        // 生成格式：原文件名_序号.wav
-        return `${baseName}_${this.exportCounter}.wav`;
+        // 生成格式：序号_原文件名.wav
+        return `${this.exportCounter}_${baseName}.wav`;
     }
     
     async downloadAudio(audioBuffer, fileName) {
